@@ -1,0 +1,121 @@
+Surface Functions
+ApproxGyroid = Sin[x+Pi/2]Cos[y+Pi/2]+Sin[y+Pi/2]Cos[z+Pi/2]+Sin[z+Pi/2]Cos[x+Pi/2];
+normal[mno_]:={
+If[OddQ[mno[[3]]],-1,1],
+If[OddQ[mno[[1]]],-1,1],
+If[OddQ[mno[[2]]],-1,1]
+}
+dualNormal[mno_]:={
+If[OddQ[mno[[2]]],-1,1],
+If[OddQ[mno[[3]]],-1,1],
+If[OddQ[mno[[1]]],-1,1]
+}
+xyz[mno_]:=Plus[Times[mno,{Pi,Pi,Pi}],{Pi/2,Pi/2,Pi/2}]
+Contour[mno_]:=Plus[RotationMatrix[{{0,0,1},normal[mno]}].{r Cos[ϕ],r Sin[ϕ],
+Normal[InverseSeries[Series[ApproxGyroid/.{x->x+xyz[mno][[1]],y->y+xyz[mno][[2]],z->z+xyz[mno][[3]]}/.MapThread[Rule,
+{{x,y,z},RotationMatrix[{{0,0,1},normal[mno]}].{x,y,z}}]/.{x->r Cos[ϕ],y->r Sin[ϕ]},{z,0,4}],y]]/.y->0},
+xyz[mno]
+]
+DualContour[mno_]:=Plus[RotationMatrix[{{0,0,1},dualNormal[mno]}].{r Cos[ϕ],r Sin[ϕ],Normal[InverseSeries[Series[
+ApproxGyroid/.{x->x+Pi/2+xyz[mno][[1]],y->y+Pi/2+xyz[mno][[2]],z->z+Pi/2+xyz[mno][[3]]}/.MapThread[Rule,
+{{x,y,z},RotationMatrix[{{0,0,1},dualNormal[mno]}].{x,y,z}}]/.{x->r Cos[ϕ],y->r Sin[ϕ]},{z,0,4}],y]]/.y->0},
+xyz[mno]+{Pi/2,Pi/2,Pi/2}]
+AbsoluteTiming[
+ContoursF =TrigReduce[Normal@Series[ Contour/@Tuples[{0,1},3],{r,0,7}]];
+DualContoursF =TrigReduce[Normal@Series[ DualContour/@Join[IdentityMatrix[3],-IdentityMatrix[3]],{r,0,7}]];
+CentralDualContour = TrigReduce[Normal@Series[DualContour[{0,0,0}],{r,0,7}]];
+]
+Expand[CentralDualContour]
+g0 = ContourPlot3D[ApproxGyroid==0,{x,0,2Pi},{y,0,2Pi},{z,0,2Pi},Mesh->3,ContourStyle->Directive[Blue,Opacity[0.5]],Boxed->False,Axes->False];
+ContourDrawing = Show[g0,
+ParametricPlot3D[Evaluate[(ContoursF/.r->#/4)],{ϕ,0,2Pi},PlotStyle->Directive[Thick,Blend[{Yellow,Green},2/3]]]&/@Range[7],
+ParametricPlot3D[Evaluate[(DualContoursF/.r->#/4)],{ϕ,0,2Pi},PlotStyle->Directive[Thick,Darker@Blue]]&/@Range[7],
+ParametricPlot3D[Evaluate[(CentralDualContour/.r->#/4)],{ϕ,0,2Pi},PlotStyle->Directive[Thick,Darker@Cyan]]&/@Range[7]
+,PlotRange->All,Boxed->False,Axes->False,ImageSize->800
+]
+(*lines = Cases[CentralDualContourDrawing,Line[_],Infinity];*)
+(*l1 =  Cases[CentralDualContourDrawing,Line[_],Infinity];
+l2 =  Cases[DualContourDrawing,Line[_],Infinity];
+l3=Cases[ContourDrawing,Line[_],Infinity];*)
+(*l1seg=Flatten[Partition[#[[1]],3,2]&/@l1,1];
+l2seg=Flatten[Partition[#[[1]],3,2]&/@l2,1];
+l3seg=Flatten[Partition[#[[1]],3,2]&/@l3,1];*)
+from import 
+(*l1seg=ToExpression[Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Segments1.csv"]];
+l2seg=ToExpression[Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Segments2.csv"]];
+l3seg=ToExpression[Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Segments3.csv"]];*)
+M1 = EulerMatrix[{0,0,θ}].EulerMatrix[{Pi/4,2Pi (6/20),0}];
+(*OrderLineSegsExport[ProjXY_,ProjZ_,seg_]:=SetPrecision[Prepend[Flatten[ProjXY.#&/@seg],.002*Exp[-(1/5)Mean[ProjZ.#&/@seg]] ],4]*)
+(*Export[
+StringJoin["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/rot",StringPadLeft[ToString[#],3,"0"],".csv"],
+Function[{EM},Join[
+OrderLineSegsExport[EM[[{1,3}]],EM[[2]],#-{1,1,1}Pi]&/@l1seg,
+OrderLineSegsExport[EM[[{1,3}]],EM[[2]],#-{1,1,1}Pi]&/@l3seg,
+OrderLineSegsExport[EM[[{1,3}]],EM[[2]],# -{1,1,1}Pi]&/@l2seg
+]
+][M1/.θ(2*Pi*#/360)]]&/@Range[0,360]*)
+(*Export[
+StringJoin["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/AnimationFrames/rot",StringPadLeft[ToString[#],3,"0"],".gif"],
+Graphics[{Gray,{Thickness[#[[1]] ],Line@Partition[#[[2;;-1]],2] }&/@Import[
+StringJoin[
+"~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/rot",StringPadLeft[ToString[#],3,"0"],".csv"]
+]},PlotRange{{-2Pi,2Pi},{-2Pi,2Pi}},ImageSize500]]&/@Range[0,360]*)
+gList = Import[StringJoin["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/AnimationFrames/rot",StringPadLeft[ToString[#],3,"0"],".gif"]]&/@Range[0,360];
+Export["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ContourRotation.gif",gList]
+Import Functions 
+fileNames = Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/ScriptLogoJpegs/FILELIST"][[All,1]];
+fileNames;
+earthN = Position[fileNames,"Earth1.jpg"][[1,1]];
+sixN = Flatten[{Position[fileNames,"Human1.jpg"],
+Position[fileNames,"Solve1.jpg"],
+Position[fileNames,"SolveOnYouNow1.jpg"],
+Position[fileNames,"Humanity1.jpg"],
+Position[fileNames,"UseMarkerWrite1.jpg"],
+Position[fileNames,"ThereIsNoLinearTime1.jpg"]}];
+ProcessFilename[filename_]:=StringReplace[filename,Join[{".jpg"->"","_"->"","1"->""},#->StringJoin[" "<>#]&/@ToUpperCase[Alphabet[]]]]
+ImportIM[n_]:= Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/ScriptLogoJpegs/"<>fileNames[[n]] ];
+ImportPixelData[n_]:= ImageData[
+ColorNegate@Binarize[Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/ScriptLogoJpegs/"<>fileNames[[n]] ],.9]
+][[Range[3300/10]10,Range[3300/10]10]];
+centers = Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/ProcessedData/centers330.csv"];
+imDat[n_]:=RotateRight[#,centers[[n,2]] ]&/@Transpose@(RotateRight[#,centers[[n,1]] ]&/@ImportPixelData[n])
+ArrayPlot@imDat[32];
+rϕ[n_]:=Module[{
+Positions1 = N@Position[imDat[n],1],
+radii,maxR,normRadii,angles
+},
+radii = Norm[#-{165,165}]&/@Positions1;
+maxR=Max@radii;
+normRadii=radii/maxR;
+angles = ArcTan[#[[2]]-165,#[[1]]-165]&/@Positions1;
+N[Transpose[{normRadii,angles}]]
+]
+rϕ32=rϕ[32];
+rϕCent = rϕ[earthN];
+rϕSix = rϕ/@sixN;
+Painting Functions
+OrderPtsExp[ProjXY_,ProjZ_,pt_]:=Prepend[Flatten[ProjXY.#&@pt],Exp[-(1/5)ProjZ.#&@pt]]
+PointList1  = Function[{CF},OrderPtsExp[
+Part[N[M1/.θ->34/360*2*Pi],{1,3}],
+Part[N[M1/.θ->34/360*2*Pi],2],
+(CF/.{r->1.5#[[1]],ϕ->#[[2]]})]&/@rϕ32]/@ContoursF;
+PointList2  = MapThread[Function[{CF,pts},OrderPtsExp[
+Part[N[M1/.θ->34/360*2*Pi],{1,3}],
+Part[N[M1/.θ->34/360*2*Pi],2],
+(CF/.{r->1.5#[[1]],ϕ->#[[2]]})]&/@pts],{DualContoursF,rϕSix}];
+PointList3  = OrderPtsExp[
+Part[N[M1/.θ->34/360*2*Pi],{1,3}],
+Part[N[M1/.θ->34/360*2*Pi],2],
+(CentralDualContour/.{r->1.5#[[1]],ϕ->#[[2]]})]&/@rϕCent;
+Export["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Logograms1.csv",Flatten[PointList1,1]]
+Export["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Logograms2.csv",Flatten[PointList2,1]]
+Export["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Logograms3.csv",PointList3]
+pts1 =Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Logograms1.csv"];
+pts2 = Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Logograms2.csv"];
+pts3 = Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/ApproxGyroidData/Logograms3.csv"];
+allPTData =Reverse[ Sort[Join[pts1,pts2,pts3]]];
+Max@allPTData[[All,1]]
+allPTData[[1;;10]]/.{x_,y_,z_}:>{GrayLevel[x/1.4],Point[{y,z}]};
+g1 = Graphics[(#/.{x_,y_,z_}:>{GrayLevel[x/1.4],Point[{y,z}]})&/@allPTData,ImageSize->750]
+
+Export["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/Brad/PaintedSurface.png",g1]
