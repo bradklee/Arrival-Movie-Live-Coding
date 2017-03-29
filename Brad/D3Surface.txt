@@ -1,0 +1,113 @@
+Basic, Wrong Approximation
+In[1]:= ApproxP=Sin[x]+Cos[y-Pi/2]+Sin[w];
+ApproxP2=ApproxP/.MapThread[Rule,{{x,y,w},RotationMatrix[{{0,0,1},{1,1,1}}].{x,y,w}}];
+In[3]:= ContourF =Normal[Series[Normal[InverseSeries[Series[ApproxP2,{w,0,5}],k]]/.{k->0,x->ρ Cos[ϕ],y->ρ Sin[ϕ]},{ρ,0,5}]];
+Expand[TrigReduce[ContourF]]
+ContourFxy  = Expand[ContourF/.{Cos[ϕ]->x/ρ,Sin[ϕ]->y/ρ}]
+Show[
+ContourPlot3D[ApproxP2==0,{x,-Pi,Pi},{y,-Pi,Pi},{w,-1,1}],
+ParametricPlot3D[Evaluate[ContourF/.ρ->#/10&/@Range[10]],{ϕ,0,2Pi}],
+ParametricPlot3D[Evaluate[{ρ Cos[ϕ],ρ Sin[ϕ],ContourF}/.ρ->#/10]&/@Range[20],{ϕ,0,2Pi}]
+];
+Import Logograms
+fileNames = Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/ScriptLogoJpegs/FILELIST"][[All,1]];
+fileNames[[-4]]
+earthN = Position[fileNames,"Earth1.jpg"][[1,1]];
+sixN = Flatten[{Position[fileNames,"Human1.jpg"],
+Position[fileNames,"Solve1.jpg"],
+Position[fileNames,"SolveOnYouNow1.jpg"],
+Position[fileNames,"Humanity1.jpg"],
+Position[fileNames,"UseMarkerWrite1.jpg"],
+Position[fileNames,"ThereIsNoLinearTime1.jpg"]}];
+ProcessFilename[filename_]:=StringReplace[filename,Join[{".jpg"->"","_"->"","1"->""},#->StringJoin[" "<>#]&/@ToUpperCase[Alphabet[]]]]
+ImportIM[n_]:= Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/ScriptLogoJpegs/"<>fileNames[[n]] ];
+ImportPixelData[n_]:= ImageData[
+ColorNegate@Binarize[Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/ScriptLogoJpegs/"<>fileNames[[n]] ],.9]
+][[Range[3300/10]10,Range[3300/10]10]];
+centers = Import["~/VersionControlled/Arrival/Arrival-Movie-Live-Coding/ProcessedData/centers330.csv"];
+imDat[n_]:=RotateRight[#,centers[[n,2]] ]&/@Transpose@(RotateRight[#,centers[[n,1]] ]&/@ImportPixelData[n])
+ArrayPlot@imDat[-4];
+rϕ[n_]:=Module[{
+Positions1 = N@Position[imDat[n],1],
+radii,maxR,normRadii,angles
+},
+radii = Norm[#-{165,165}]&/@Positions1;
+maxR=Max@radii;
+normRadii=radii/maxR;
+angles = ArcTan[#[[2]]-165,#[[1]]-165]&/@Positions1;
+N[Transpose[{normRadii,angles}]]
+]
+rϕWeapon=rϕ[-4];
+Curvature Zero Expansion 
+In[7]:= r = Sqrt[x^2+y^2];P = y/r;Q=x/r;
+Q3 = 4Q^3-3Q;P3 = 3P-4P^3;
+In[9]:= g3=Expand[r^3 Q3 ];
+g2=x^2+y^2;
+indList[n_]:=Select[IntegerPartitions[n],MemberQ[{{2,3},{2},{3}},Union[#]]&]
+coeff[ind_]:=c@@Flatten[{Cases[Tally[ind],{2,x_}:>x],Cases[Tally[ind],{3,x_}:>x]}/.{}->0]
+params = Flatten[indList[#]&/@Range[2,21],1];
+In[13]:= (*params = Flatten[indList[2#+1]&/@Range[8],1];*)
+In[14]:= (*Length/@(indList[2#+1]&/@Range[8]);*)
+In[15]:= params = Flatten[indList[#]&/@Range[2,21],1];
+In[16]:= Ψ=Expand[Total[(coeff[#]Times@@(#/.{2->g2,3->g3}))&/@params]];
+In[6]:= MeanCurvatureNumerator[F_]:=Expand[((1+D[F,x]^2)*D[F,{y,2}]-2D[F,x] *D[F,y] *D[D[F,y],x]+(1+D[F,y]^2)*D[F,{x,2}])]
+In[20]:= AbsoluteTiming[
+CurvExp =Expand[MeanCurvatureNumerator[Ψ]];
+]
+Sols[n_]:=Fold[Join[#1,Expand@Solve[#2[[2]]/.#1 ,#2[[1]]][[1]]]&,{},
+Transpose[{(coeff/@indList[2+#])&/@Range[0,n],
+Function[{a},#==0&/@(Coefficient[Coefficient[CurvExp,x,#],y,a-#]&/@Range[0,a])][#]&/@(Range[0,n])}]
+]//Quiet
+In[21]:= AbsoluteTiming[
+S19 = Sols[19];
+]
+In[34]:= S19[[3]]
+In[42]:= Ψ19 = Ψ//.S19/.c[x_,y_]:> 1/(2x+3y)!
+TrigReduce[Ψ19/.{x->ρ Cos[ϕ],y->ρ Sin[ϕ]}]
+
+
+In[22]:= MeanCurvature[F_]:=Divide[
+Expand[((1+D[F,x]^2)*D[F,{y,2}]-2D[F,x] *D[F,y] *D[D[F,y],x]+(1+D[F,y]^2)*D[F,{x,2}])],
+(1+D[F,x]^2+D[F,y]^2)^(3/2)]
+In[23]:= curv1 = MeanCurvature[ContourFxy];
+curv2 = MeanCurvature[Ψ//.S19/.c[x_,y_]:> 1/(2x+3y)!];
+In[33]:= Row[{Plot3D[{curv1,curv2},{y,-7/5,7/5},{x,-7/5,7/5},PlotRange->All,RegionFunction->Function[{x,y,z},x^2+y^2<=(6/5)^2],ImageSize->400],
+Plot3D[{curv1,curv2},{y,-7/5,7/5},{x,-7/5,7/5},PlotRange->All,RegionFunction->Function[{x,y,z},x^2+y^2<=(7/5)^2],ImageSize->400]}]
+In[44]:= z = Ψ//.S19/.c[x_,y_]:> 1/(2x+3y)!;
+In[45]:= Coefficient[TrigReduce[Ψ//.S19/.c[x_,y_]:> 1/(2x+3y)!/.{x->ρ Cos[ϕ],y->ρ Sin[ϕ]}],ρ,5]
+In[46]:= S1 = Plus[
+z Normalize[{1,1,1}],
+-y RotationMatrix[2Pi/6,{1,1,1}].Normalize[{0,1,-1}],
+x RotationMatrix[2Pi/6,{1,1,1}].Normalize[{-1,1/2,1/2}],
++{1,1,1}
+]/.{x->ρ Cos[ϕ],y->ρ Sin[ϕ]}(*/.{ρ^n_/;n>30}*);
+In[47]:= S234 = RotationMatrix[# Pi/2,{0,0,1}].S1&/@Range[3];
+In[48]:= S5678 = RotationMatrix[# Pi/2,{0,0,1}].RotationMatrix[Pi/2,{0,1,0}].S1&/@Range[4];
+In[49]:= S9to16=#+{4,0,0}&/@Prepend[Join[S5678,S234],S1];
+In[50]:= SMore=#-{4,0,0}&/@Prepend[Join[S5678,S234],S1];
+In[51]:= g1 = Show[ParametricPlot3D[Evaluate[S1/.ρ->#/5&/@Range[7]],{ϕ,0,2Pi}],
+Function[{S},ParametricPlot3D[Evaluate[S/.ρ->#/5&/@Range[7]],{ϕ,0,2Pi}]]/@S234,
+Function[{S},ParametricPlot3D[Evaluate[S/.ρ->#/5&/@Range[7]],{ϕ,0,2Pi}]]/@S5678,
+Function[{S},ParametricPlot3D[Evaluate[S/.ρ->#/5&/@Range[7]],{ϕ,0,2Pi}]]/@S9to16(*,
+Function[{S},ParametricPlot3D[Evaluate[S/.ρ#/5&/@Range[7]],{ϕ,0,2Pi}]]/@SMore,*),
+PlotRange->All,Boxed->False,Axes->False,ImageSize->500
+]
+In[52]:= lines = Cases[g1,Line[x_]:>x,Infinity];
+In[53]:= lineSeg = Flatten[Partition[#,3,1]&/@lines,1];
+In[54]:= M1 = EulerMatrix[{0,0,θ}].EulerMatrix[{Pi/4,2Pi (7/20),0}];
+OrderLineSegs[ProjXY_,ProjZ_,seg_]:=SetPrecision[Prepend[{Line[
+Times[{-1,1},ProjXY.#]&/@seg]},Thickness[.002*Exp[-(1/3)Mean[ProjZ.#&/@seg]]] ],4]
+In[56]:= S9to16[[{3}]];
+SMore[[{3}]];
+In[58]:= PointMap1 = Expand[N@Times[M1[[{1,3}]]/.θ->(2*Pi*20/360),{-1,1}].S5678[[3]]];
+PointMap2 = Expand[N@Times[M1[[{1,3}]]/.θ->(2*Pi*20/360),{-1,1}].S9to16[[4]]];
+PointMap3 = Expand[N@Times[M1[[{1,3}]]/.θ->(2*Pi*20/360),{-1,1}].SMore[[4]]];
+In[61]:= g2 = Graphics[{Line[{{0,0}}],Gray,Function[{EM},Join[
+OrderLineSegs[EM[[{1,3}]],EM[[2]],#]&/@lineSeg
+]
+][M1/.θ->(2*Pi*20/360)]},ImageSize->800];
+In[62]:= g3 = Show[g2,
+Graphics[Point[PointMap1/.{ρ->1.3*#[[1]],ϕ->#[[2]]}&/@rϕWeapon]],
+Graphics[Point[PointMap2/.{ρ->1.3*#[[1]],ϕ->(#[[2]]+2Pi/3)}&/@rϕWeapon]],
+Graphics[Point[PointMap3/.{ρ->1.3*#[[1]],ϕ->(#[[2]]-2Pi/3)}&/@rϕWeapon]]
+]
